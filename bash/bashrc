@@ -59,8 +59,7 @@ if [ -n "$force_color_prompt" ]; then
     fi
 fi
 
-# get current branch in git repo, if we pass "yes" as argument, it with colour the branch name
-#  according to the working tree being clean or not
+# get current branch in git repo
 function parse_git_branch() {
 	BRANCH=`git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'`
 	if [ ! "${BRANCH}" == "" ]
@@ -118,11 +117,28 @@ function parse_git_dirty {
 	fi
 }
 
+function parse_k8s_ctx() {
+	if [[ $1 == "yes" ]]; then
+		CL_1='\e[30m\e[46m '$'\xE2\x98\xB8'
+        	CL_2='\e[0m'
+	else
+		CL_1=''
+		CL_2=''
+	fi
+	which kubectl &>/dev/null
+	if [[ $? == 0 ]]; then
+		kubectl config get-contexts | grep \* &>/dev/null
+		if [[ $? == 0 ]]; then
+	    		CTX=`kubectl config current-context`
+			echo -e "$CL_1 ${CTX} $CL_2 "
+		fi
+	fi
+}
 
 if [ "$color_prompt" = yes ]; then
-    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\d \A\[\033[00m\]`parse_git_branch "yes"` \[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\n\$ '
+    PS1='${debian_chroot:+($debian_chroot)}`parse_k8s_ctx "yes"`\[\033[01;32m\]\d \A\[\033[00m\]`parse_git_branch "yes"` \[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\n\$ '
 else
-    PS1='${debian_chroot:+($debian_chroot)}\d \A`parse_git_branch` \u@\h:\w\n\$ '
+    PS1='${debian_chroot:+($debian_chroot)}`parse_k8s_ctx`\d \A`parse_git_branch` \u@\h:\w\$ '
 fi
 unset color_prompt force_color_prompt
 
@@ -179,7 +195,8 @@ if ! shopt -oq posix; then
   fi
 fi
 
-export PATH=$PATH:$HOME/bin
+export PATH="$HOME/bin:$HOME/go/bin:${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 
-source <(kubectl completion bash)
-source <(flux completion bash)
+
+which kubectl &>/dev/null && source <(kubectl completion bash)
+which flux &>/dev/null && source <(flux completion bash)
