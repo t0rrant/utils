@@ -130,7 +130,8 @@ function parse_k8s_ctx() {
 		kubectl config get-contexts | grep \* &>/dev/null
 		if [[ $? == 0 ]]; then
 	    		CTX=`kubectl config current-context`
-			echo -e "$CL_1 ${CTX} $CL_2 "
+			NS=`kubectl config view --minify --output 'jsonpath={..namespace}'`
+			echo -e "$CL_1 $NS @ ${CTX} $CL_2 "
 		fi
 	fi
 }
